@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        textarea, input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Order Creation API Test</h1>
+    
+    <div class="container info">
+        <h3>🎯 Purpose</h3>
+        <p>This page tests the order creation API directly without going through your React frontend.</p>
+        <p><strong>Backend URL:</strong> <span id="backend-url">http://localhost:8000</span></p>
+    </div>
+
+    <div class="container">
+        <h3>📝 Test Order Data</h3>
+        <label>User ID:</label>
+        <input type="text" id="userId" value="test_user_123" placeholder="Enter User ID">
+        
+        <label>Total Amount:</label>
+        <input type="number" id="totalAmt" value="1000" placeholder="Enter Total Amount">
+        
+        <label>Products (JSON Array):</label>
+        <textarea id="products" rows="8">[
+  {
+    "productId": "product_123",
+    "productTitle": "Test Product",
+    "quantity": 2,
+    "price": 500,
+    "subTotal": 1000,
+    "image": "https://example.com/image.jpg"
+  }
+]</textarea>
+        
+        <label>Delivery Address ID (optional):</label>
+        <input type="text" id="delivery_address" value="" placeholder="Enter Address ID (optional)">
+        
+        <label>Payment Status:</label>
+        <select id="payment_status">
+            <option value="pending">Pending</option>
+            <option value="paid">Paid</option>
+            <option value="cod">COD</option>
+        </select>
+    </div>
+
+    <div class="container">
+        <h3>🚀 Actions</h3>
+        <button onclick="testConnection()">Test Server Connection</button>
+        <button onclick="testDatabase()">Test Database Connection</button>
+        <button onclick="createOrder()">Create Test Order</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const backendURL = document.getElementById('backend-url').textContent;
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const container = document.createElement('div');
+            container.className = `container ${type}`;
+            container.innerHTML = `
+                <h4>${type.toUpperCase()}: ${new Date().toLocaleTimeString()}</h4>
+                <pre>${message}</pre>
+            `;
+            results.appendChild(container);
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function testConnection() {
+            log('Testing server connection...', 'info');
+            try {
+                const response = await fetch(backendURL);
+                const data = await response.json();
+                log(JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+            } catch (error) {
+                log(`Connection failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDatabase() {
+            log('Testing database connection...', 'info');
+            try {
+                const response = await fetch(`${backendURL}/api/test-db`);
+                const data = await response.json();
+                log(JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+            } catch (error) {
+                log(`Database test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function createOrder() {
+            log('Creating test order...', 'info');
+            
+            try {
+                // Collect form data
+                const userId = document.getElementById('userId').value;
+                const totalAmt = parseFloat(document.getElementById('totalAmt').value);
+                const productsText = document.getElementById('products').value;
+                const delivery_address = document.getElementById('delivery_address').value;
+                const payment_status = document.getElementById('payment_status').value;
+                
+                // Parse products JSON
+                let products;
+                try {
+                    products = JSON.parse(productsText);
+                } catch (e) {
+                    log(`Invalid products JSON: ${e.message}`, 'error');
+                    return;
+                }
+                
+                // Build request payload
+                const payload = {
+                    userId: userId,
+                    products: products,
+                    totalAmt: totalAmt,
+                    payment_status: payment_status,
+                    delivery_address: delivery_address || null,
+                    date: new Date().toISOString()
+                };
+                
+                log(`Sending payload:\n${JSON.stringify(payload, null, 2)}`, 'info');
+                
+                // Make API request
+                const response = await fetch(`${backendURL}/api/order/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add any auth headers if needed
+                        // 'Authorization': 'Bearer your-token-here'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                log(`Response (${response.status}):\n${JSON.stringify(data, null, 2)}`, 
+                    response.ok ? 'success' : 'error');
+                
+                if (!response.ok) {
+                    log(`HTTP Error: ${response.status} ${response.statusText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Request failed: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Auto-test connection on page load
+        window.onload = function() {
+            setTimeout(testConnection, 500);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .testing { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Server Status Test</h1>
+    
+    <div id="backend-status" class="status testing">Testing Backend Server...</div>
+    <div id="frontend-status" class="status testing">Testing Frontend Server...</div>
+    <div id="delhivery-status" class="status testing">Testing Delhivery API...</div>
+    
+    <h2>🧪 API Tests</h2>
+    <button onclick="testBackendAPI()">Test Backend API</button>
+    <button onclick="testDelhiveryAPI()">Test Delhivery Tracking</button>
+    
+    <div id="test-results"></div>
+
+    <script>
+        const backendURL = 'http://localhost:8000';
+        const frontendURL = 'http://localhost:8081';
+        
+        async function testServer(url, elementId, name) {
+            const element = document.getElementById(elementId);
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    element.className = 'status success';
+                    element.innerHTML = `✅ ${name} is running on ${url}`;
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                element.className = 'status error';
+                element.innerHTML = `❌ ${name} failed: ${error.message}`;
+                return false;
+            }
+        }
+        
+        async function testBackendAPI() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="status testing">Testing Backend API endpoints...</div>';
+            
+            try {
+                // Test basic endpoint
+                const response = await fetch(`${backendURL}/`);
+                const data = await response.json();
+                
+                results.innerHTML = `
+                    <div class="status success">
+                        <h3>✅ Backend API Test Results:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="status error">
+                        <h3>❌ Backend API Test Failed:</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testDelhiveryAPI() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<div class="status testing">Testing Delhivery API integration...</div>';
+            
+            try {
+                // Test shipping rates endpoint (doesn't require auth)
+                const response = await fetch(`${backendURL}/api/delhivery/shipping-rates/400001?from=110001&weight=1`);
+                const data = await response.json();
+                
+                results.innerHTML = `
+                    <div class="status ${data.success ? 'success' : 'error'}">
+                        <h3>${data.success ? '✅' : '⚠️'} Delhivery API Test Results:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="status error">
+                        <h3>❌ Delhivery API Test Failed:</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-test servers when page loads
+        window.onload = function() {
+            testServer(backendURL, 'backend-status', 'Backend Server');
+            testServer(frontendURL, 'frontend-status', 'Frontend Server');
+            
+            // Test Delhivery integration
+            setTimeout(async () => {
+                try {
+                    const response = await fetch(`${backendURL}/api/delhivery/shipping-rates/400001?from=110001`);
+                    const data = await response.json();
+                    const element = document.getElementById('delhivery-status');
+                    
+                    if (response.ok) {
+                        element.className = 'status success';
+                        element.innerHTML = '✅ Delhivery Integration is working';
+                    } else {
+                        element.className = 'status error';
+                        element.innerHTML = `⚠️ Delhivery Integration: ${data.message || 'API not responding'}`;
+                    }
+                } catch (error) {
+                    const element = document.getElementById('delhivery-status');
+                    element.className = 'status error';
+                    element.innerHTML = `❌ Delhivery Integration failed: ${error.message}`;
+                }
+            }, 2000);
+        };
+    </script>
+</body>
+</html>
